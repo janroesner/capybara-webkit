@@ -21,6 +21,7 @@ class WebPageManager : public QObject {
     void setCurrentPage(WebPage *);
     WebPage *currentPage() const;
     WebPage *createPage(QObject *parent);
+    void removePage(WebPage *);
     void setIgnoreSslErrors(bool);
     bool ignoreSslErrors();
     void setTimeout(int);

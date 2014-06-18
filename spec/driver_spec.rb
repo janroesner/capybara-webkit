@@ -1925,6 +1925,42 @@ describe Capybara::Webkit::Driver do
       end
     end
 
+    it "can switch to another window" do
+      visit("/new_window")
+      driver.switch_to_window(driver.window_handles.last)
+      driver.find_xpath("//p").first.visible_text.should eq "finished"
+    end
+
+    it "knows the current window handle" do
+      visit("/new_window")
+      driver.within_window(driver.window_handles.last) do
+        driver.current_window_handle.should eq driver.window_handles.last
+      end
+    end
+
+    it "can close the current window" do
+      visit("/new_window")
+      original_handle = driver.current_window_handle
+      driver.switch_to_window(driver.window_handles.last)
+      driver.close_window(driver.current_window_handle)
+
+      driver.current_window_handle.should eq(original_handle)
+    end
+
+    it "can close an unfocused window" do
+      visit("/new_window")
+      driver.close_window(driver.window_handles.last)
+      driver.window_handles.size.should eq(1)
+    end
+
+    it "can close the last window" do
+      visit("/new_window")
+      handles = driver.window_handles
+      handles.each { |handle| driver.close_window(handle) }
+      driver.html.should be_empty
+      handles.should_not include(driver.current_window_handle)
+    end
+
     it "waits for the new window to load" do
       visit("/new_window?sleep=1")
       driver.within_window(driver.window_handles.last) do
@@ -1969,7 +2005,7 @@ describe Capybara::Webkit::Driver do
 
     it "raises an error if the window is not found" do
       expect { driver.within_window('myWindowDoesNotExist') }.
-        to raise_error(Capybara::Webkit::InvalidResponseError)
+        to raise_error(Capybara::Webkit::NoSuchWindowError)
     end
 
     it "has a number of window handles equal to the number of open windows" do
@@ -1978,11 +2014,25 @@ describe Capybara::Webkit::Driver do
       driver.window_handles.size.should eq 2
     end
 
+    it "removes windows when closed via JavaScript" do
+      visit("/new_window")
+      driver.execute_script('console.log(window.document.title); window.close()')
+      sleep 2
+      driver.window_handles.size.should eq 1
+    end
+
     it "closes new windows on reset" do
       visit("/new_window")
       last_handle = driver.window_handles.last
       driver.reset!
       driver.window_handles.should_not include(last_handle)
+    end
+
+    it "opens new windows on demand" do
+      visit("/new_window")
+      driver.open_new_window
+      driver.window_handles.size.should eq 3
+      driver.html.should be_empty
     end
   end
 

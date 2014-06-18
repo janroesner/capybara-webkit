@@ -11,6 +11,8 @@
 #include <QWebSettings>
 #include <QUuid>
 #include <QApplication>
+#include <QWebView>
+#include <QMainWindow>
 
 WebPage::WebPage(WebPageManager *manager, QObject *parent) : QWebPage(parent) {
   m_loading = false;
@@ -33,14 +35,28 @@ WebPage::WebPage(WebPageManager *manager, QObject *parent) : QWebPage(parent) {
           this, SLOT(frameCreated(QWebFrame *)));
   connect(this, SIGNAL(unsupportedContent(QNetworkReply*)),
       this, SLOT(handleUnsupportedContent(QNetworkReply*)));
-  resetWindowSize();
+  connect(this, SIGNAL(windowCloseRequested()), this, SLOT(remove()));
 
   settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows, true);
+  settings()->setAttribute(QWebSettings::JavascriptCanCloseWindows, true);
+  settings()->setAttribute(QWebSettings::LocalStorageDatabaseEnabled, true);
+
+  createWindow();
 }
 
-void WebPage::resetWindowSize() {
-  this->setViewportSize(QSize(1680, 1050));
-  this->settings()->setAttribute(QWebSettings::LocalStorageDatabaseEnabled, true);
+void WebPage::createWindow() {
+  QMainWindow *window = new QMainWindow();
+  QWebView *view = new QWebView(window);
+  view->setPage(this);
+  window->setCentralWidget(view);
+  window->resize(1680, 1050);
+  window->setWindowOpacity(0);
+}
+
+void WebPage::resize(int width, int height) {
+  view()->window()->show();
+  view()->window()->resize(width, height);
+  view()->window()->hide();
 }
 
 void WebPage::resetLocalStorage() {
@@ -359,6 +375,10 @@ bool WebPage::matchesWindowSelector(QString selector) {
 
 void WebPage::setFocus() {
   m_manager->setCurrentPage(this);
+}
+
+void WebPage::remove() {
+  m_manager->removePage(this);
 }
 
 void WebPage::setConfirmAction(QString action) {

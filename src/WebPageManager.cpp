@@ -47,6 +47,14 @@ WebPage *WebPageManager::createPage(QObject *parent) {
   return page;
 }
 
+void WebPageManager::removePage(WebPage *page) {
+  m_pages.removeOne(page);
+  if (m_pages.isEmpty())
+    createPage(this)->setFocus();
+  else if (page == m_currentPage)
+    m_pages.first()->setFocus();
+}
+
 void WebPageManager::emitLoadStarted() {
   if (m_started.empty()) {
     logger() << "Load started";
